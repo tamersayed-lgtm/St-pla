@@ -195,18 +195,41 @@
             return `<div class="relative overflow-hidden ${wrapSize} bg-gradient-to-br ${esc(app.bgClass)} app-icon-squircle flex items-center justify-center shrink-0 shadow-sm ${extra}"><i class="${esc(app.iconClass)} ${iconSize} text-white"></i>${img}</div>`;
         }
 
-        // --- وظيفة أنيميشن التحميل والتثبيت الاحترافية ---
-        function handleInstall(downloadLink) {
+        // --- تحميل داخل المتجر ثم تثبيت ---
+        const downloadedFiles = {};   // id -> Blob (الملفات التي تم تحميلها داخل المتجر)
+        const APK_MIME = 'application/vnd.android.package-archive';
+
+        function setBtn(html, cls) {
             const btn = document.getElementById('detailDownloadBtn');
-            if (btn.dataset.installing === "true") return;
-            btn.dataset.installing = "true";
-            
-            // تحويل الزر إلى دائرة التحميل
-            btn.style.width = '40px';
-            btn.style.height = '40px';
-            btn.style.padding = '0';
-            btn.style.borderRadius = '50%';
-            btn.style.backgroundColor = 'transparent';
+            if (!btn) return null;
+            btn.removeAttribute('style');
+            btn.className = cls;
+            btn.innerHTML = html;
+            return btn;
+        }
+
+        const BTN_GREEN = 'block w-full bg-playGreen text-white text-center rounded-full font-medium install-btn text-sm h-10 transition-all duration-300';
+
+        function showDownloadButton(app) {
+            const btn = setBtn('تحميل', BTN_GREEN);
+            btn.dataset.busy = 'false';
+            btn.onclick = () => startDownload(app);
+        }
+
+        function showInstallButton(app) {
+            const btn = setBtn('تثبيت', BTN_GREEN);
+            btn.dataset.busy = 'false';
+            btn.onclick = () => startInstall(app);
+        }
+
+        // المرحلة 1: التحميل الفعلي داخل المتجر مع شريط تقدم حقيقي
+        async function startDownload(app) {
+            const btn = document.getElementById('detailDownloadBtn');
+            if (btn.dataset.busy === 'true') return;
+            btn.dataset.busy = 'true';
+
+            btn.className = 'install-btn';
+            btn.style.cssText = 'width:40px;height:40px;padding:0;border-radius:50%;background:transparent';
             btn.innerHTML = `
                 <div class="relative w-10 h-10 flex justify-center items-center">
                     <svg class="absolute w-10 h-10 transform -rotate-90" viewBox="0 0 36 36">
@@ -214,39 +237,71 @@
                         <path id="progCircle" stroke-width="3" stroke-dasharray="0, 100" stroke="#01875f" fill="none" class="transition-all duration-200 ease-linear" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
                     <div id="progText" class="absolute flex items-center justify-center text-[10px] font-bold text-playText mt-0.5">0%</div>
-                </div>
-            `;
-            
-            let progress = 0;
-            const progCircle = document.getElementById('progCircle');
-            const progText = document.getElementById('progText');
-            
-            const interval = setInterval(() => {
-                progress += Math.floor(Math.random() * 12) + 5; 
-                if (progress >= 100) progress = 100;
-                
-                progCircle.setAttribute('stroke-dasharray', `${progress}, 100`);
-                progText.innerText = progress + '%';
-                
-                if (progress === 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        // مرحلة "جاري التثبيت"
-                        btn.style.width = '100%';
-                        btn.style.borderRadius = '9999px';
-                        btn.classList.add('border', 'border-gray-600');
-                        btn.innerHTML = '<span class="text-playMuted text-sm font-medium">جاري التثبيت...</span>';
-                        
-                        setTimeout(() => {
-                            // التنزيل الفعلي وتغيير الزر إلى "تشغيل"
-                            window.location.href = downloadLink;
-                            btn.classList.remove('border-gray-600');
-                            btn.style.backgroundColor = '#303134';
-                            btn.innerHTML = '<span class="text-playGreenLight text-sm font-medium">تشغيل</span>';
-                        }, 2500);
-                    }, 400);
+                </div>`;
+
+            const setProgress = p => {
+                p = Math.max(0, Math.min(100, Math.round(p)));
+                const c = document.getElementById('progCircle'), t = document.getElementById('progText');
+                if (c) c.setAttribute('stroke-dasharray', `${p}, 100`);
+                if (t) t.textContent = p + '%';
+            };
+
+            try {
+                const res = await fetch(app.downloadLink);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+
+                const total = parseInt(res.headers.get('content-length') || '0', 10);
+                const chunks = [];
+                let received = 0;
+
+                if (res.body && res.body.getReader) {
+                    const reader = res.body.getReader();
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                        received += value.length;
+                        // إن لم يُعرف الحجم الكلي نُقدّر التقدم تقريبياً
+                        setProgress(total ? (received / total) * 100 : 90 * (1 - Math.exp(-received / (5 * 1024 * 1024))));
+                    }
+                } else {
+                    chunks.push(new Uint8Array(await res.arrayBuffer()));
                 }
-            }, 250);
+
+                downloadedFiles[app.id] = new Blob(chunks, { type: APK_MIME });
+                setProgress(100);
+                setTimeout(() => showInstallButton(app), 400);
+            } catch (err) {
+                console.error('Download failed:', err);
+                // احتياطي: إذا منع الخادم التحميل من داخل الصفحة (CORS) ننزّل عبر المتصفح مباشرة
+                window.location.href = app.downloadLink;
+                showDownloadButton(app);
+            }
+        }
+
+        // المرحلة 2: عند الضغط على "تثبيت" يُسلَّم الملف للجهاز فيظهر مثبّت الحزم
+        function startInstall(app) {
+            const blob = downloadedFiles[app.id];
+            if (!blob) return showDownloadButton(app);
+
+            const btn = document.getElementById('detailDownloadBtn');
+            if (btn.dataset.busy === 'true') return;
+            btn.dataset.busy = 'true';
+            btn.className = 'block w-full text-center rounded-full font-medium text-sm h-10 border border-gray-600';
+            btn.innerHTML = '<span class="text-playMuted text-sm font-medium">جاري التثبيت...</span>';
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (app.id || 'app') + '.apk';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                showInstallButton(app);   // يبقى الزر متاحاً إن أُغلق المثبّت
+            }, 2500);
         }
 
         function renderApps() {
@@ -301,11 +356,11 @@
 
             // تهيئة زر التثبيت
             const btnContainer = document.getElementById('btnContainer');
-            btnContainer.innerHTML = `<button id="detailDownloadBtn" class="block w-full bg-playGreen text-white text-center rounded-full font-medium install-btn text-sm h-10 transition-all duration-300">تثبيت</button>`;
+            btnContainer.innerHTML = `<button id="detailDownloadBtn" class="${BTN_GREEN}">تحميل</button>`;
             const newBtn = document.getElementById('detailDownloadBtn');
 
             if (hasLink(d.downloadLink)) {
-                newBtn.onclick = () => handleInstall(d.downloadLink);
+                if (downloadedFiles[d.id]) showInstallButton(d); else showDownloadButton(d);
             } else {
                 newBtn.textContent = 'قريباً';
                 newBtn.className = 'block w-full bg-playCard text-playMuted text-center rounded-full font-medium text-sm h-10';
