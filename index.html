@@ -70,7 +70,6 @@
                     <h2 class="text-lg font-medium text-playText">مقترح لك</h2>
                     <i class="fa-solid fa-arrow-left text-playText"></i>
                 </div>
-                <!-- سيتم حقن البطاقات الأفقية هنا -->
                 <div class="flex gap-4 overflow-x-auto hide-scroll snap-x px-4 pb-2" id="featuredContainer"></div>
             </section>
 
@@ -79,13 +78,12 @@
                 <div class="px-4 mb-3 border-t border-gray-800 pt-4">
                     <h2 class="text-lg font-medium text-playText">كل التطبيقات</h2>
                 </div>
-                <!-- سيتم حقن القائمة العمودية هنا -->
                 <div class="flex flex-col px-4" id="appListContainer"></div>
             </section>
 
         </main>
 
-        <!-- شريط التنقل السفلي الأصلي -->
+        <!-- شريط التنقل السفلي -->
         <nav class="fixed bottom-0 w-full bg-playBg border-t border-playCard z-40">
             <ul class="flex justify-around items-center pt-2 pb-3">
                 <li class="flex flex-col items-center w-16 text-playGreenLight cursor-pointer">
@@ -131,7 +129,8 @@
                 <div class="flex-col justify-center flex-1">
                     <h1 id="detailTitle" class="text-2xl font-bold text-playText leading-tight mb-1">الاسم</h1>
                     <p id="detailDev" class="text-playGreenLight text-sm font-medium mb-1">المطور</p>
-                    <p class="text-playMuted text-[11px]">يحتوي على إعلانات • عمليات شراء</p>
+                    <!-- جملة الإعلانات، سيتم التحكم بظهورها من الجافاسكريبت -->
+                    <p id="adsText" class="text-playMuted text-[11px] hidden">يحتوي على إعلانات • عمليات شراء</p>
                 </div>
             </div>
 
@@ -153,10 +152,10 @@
                 </div>
             </div>
 
-            <!-- زر التثبيت -->
-            <a id="detailDownloadBtn" href="#" class="block w-full bg-playGreen text-white text-center py-2 rounded-full font-medium mb-6 install-btn shadow-md text-sm">
-                تثبيت
-            </a>
+            <!-- حاوية زر التثبيت وأنيميشن التحميل -->
+            <div id="btnContainer" class="mb-6 h-10 flex justify-center items-center">
+                <!-- سيتم حقن الزر هنا -->
+            </div>
 
             <!-- لقطات الشاشة -->
             <div id="shotsSection" class="hidden mb-6">
@@ -182,8 +181,7 @@
     </div>
 
     <!-- ============================================== -->
-    <!-- ============================================== -->
-    <!-- سكربت جافاسكريبت: يقرأ التطبيقات من apps.json -->
+    <!-- سكربت جافاسكريبت -->
     <!-- ============================================== -->
     <script>
         const DATA_URL = 'apps.json';
@@ -192,27 +190,69 @@
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const hasLink = l => l && l !== '#';
 
-        // أيقونة: الصورة إن وُجدت، وإلا أيقونة FontAwesome كبديل
         function iconHTML(app, wrapSize, iconSize, extra = '') {
-            const img = app.icon
-                ? `<img src="${esc(app.icon)}" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">`
-                : '';
-            return `<div class="relative overflow-hidden ${wrapSize} bg-gradient-to-br ${esc(app.bgClass)} app-icon-squircle flex items-center justify-center shrink-0 shadow-sm ${extra}">
-                        <i class="${esc(app.iconClass)} ${iconSize} text-white"></i>${img}
-                    </div>`;
+            const img = app.icon ? `<img src="${esc(app.icon)}" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover" onerror="this.remove()">` : '';
+            return `<div class="relative overflow-hidden ${wrapSize} bg-gradient-to-br ${esc(app.bgClass)} app-icon-squircle flex items-center justify-center shrink-0 shadow-sm ${extra}"><i class="${esc(app.iconClass)} ${iconSize} text-white"></i>${img}</div>`;
         }
 
-        function installBtn(app, cls) {
-            return hasLink(app.downloadLink)
-                ? `<button data-install="${esc(app.id)}" class="${cls} bg-playGreen text-white">تثبيت</button>`
-                : `<button disabled class="${cls} bg-playCard text-playMuted">قريباً</button>`;
+        // --- وظيفة أنيميشن التحميل والتثبيت الاحترافية ---
+        function handleInstall(downloadLink) {
+            const btn = document.getElementById('detailDownloadBtn');
+            if (btn.dataset.installing === "true") return;
+            btn.dataset.installing = "true";
+            
+            // تحويل الزر إلى دائرة التحميل
+            btn.style.width = '40px';
+            btn.style.height = '40px';
+            btn.style.padding = '0';
+            btn.style.borderRadius = '50%';
+            btn.style.backgroundColor = 'transparent';
+            btn.innerHTML = `
+                <div class="relative w-10 h-10 flex justify-center items-center">
+                    <svg class="absolute w-10 h-10 transform -rotate-90" viewBox="0 0 36 36">
+                        <path stroke-width="3" stroke="#303134" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path id="progCircle" stroke-width="3" stroke-dasharray="0, 100" stroke="#01875f" fill="none" class="transition-all duration-200 ease-linear" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <div id="progText" class="absolute flex items-center justify-center text-[10px] font-bold text-playText mt-0.5">0%</div>
+                </div>
+            `;
+            
+            let progress = 0;
+            const progCircle = document.getElementById('progCircle');
+            const progText = document.getElementById('progText');
+            
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 12) + 5; 
+                if (progress >= 100) progress = 100;
+                
+                progCircle.setAttribute('stroke-dasharray', `${progress}, 100`);
+                progText.innerText = progress + '%';
+                
+                if (progress === 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        // مرحلة "جاري التثبيت"
+                        btn.style.width = '100%';
+                        btn.style.borderRadius = '9999px';
+                        btn.classList.add('border', 'border-gray-600');
+                        btn.innerHTML = '<span class="text-playMuted text-sm font-medium">جاري التثبيت...</span>';
+                        
+                        setTimeout(() => {
+                            // التنزيل الفعلي وتغيير الزر إلى "تشغيل"
+                            window.location.href = downloadLink;
+                            btn.classList.remove('border-gray-600');
+                            btn.style.backgroundColor = '#303134';
+                            btn.innerHTML = '<span class="text-playGreenLight text-sm font-medium">تشغيل</span>';
+                        }, 2500);
+                    }, 400);
+                }
+            }, 250);
         }
 
         function renderApps() {
             const list = document.getElementById('appListContainer');
             const featured = document.getElementById('featuredContainer');
-            list.innerHTML = '';
-            featured.innerHTML = '';
+            list.innerHTML = ''; featured.innerHTML = '';
 
             Object.values(appsData).forEach(app => {
                 list.insertAdjacentHTML('beforeend', `
@@ -222,13 +262,9 @@
                         <h3 class="text-[15px] text-playText font-medium truncate mb-0.5">${esc(app.title)}</h3>
                         <p class="text-[12px] text-playMuted truncate mb-0.5">${esc(app.category)}</p>
                         <div class="flex items-center text-[11px] text-playMuted">
-                            <span>${esc(app.rating)}</span>
-                            <i class="fa-solid fa-star text-[9px] mx-1"></i>
-                            <span class="mx-1">•</span>
-                            <span>${esc(app.size)}</span>
+                            <span>${esc(app.rating)}</span><i class="fa-solid fa-star text-[9px] mx-1"></i><span class="mx-1">•</span><span>${esc(app.size)}</span>
                         </div>
                     </div>
-                    ${installBtn(app, 'text-[13px] font-medium px-5 py-1.5 rounded-full ml-1')}
                 </div>`);
 
                 if (app.featured) {
@@ -236,11 +272,6 @@
                     <div class="flex flex-col w-24 snap-start shrink-0 cursor-pointer" data-open="${esc(app.id)}">
                         ${iconHTML(app, 'w-24 h-24', 'text-3xl', 'mb-2')}
                         <h3 class="text-[13px] text-playText leading-tight mb-1 truncate">${esc(app.title)}</h3>
-                        <div class="flex items-center text-[11px] text-playMuted">
-                            <span>${esc(app.rating)}</span>
-                            <i class="fa-solid fa-star text-[9px] mx-1"></i>
-                            <span>${esc(app.size)}</span>
-                        </div>
                     </div>`);
                 }
             });
@@ -258,40 +289,43 @@
             set('detailDownloads', d.downloads);
             set('detailVersion', d.version);
             set('detailDesc', d.description);
-            set('detailUpdated', d.updated
-                ? new Date(d.updated).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
-                : '-');
+            set('detailUpdated', d.updated ? new Date(d.updated).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '-');
 
-            const btn = document.getElementById('detailDownloadBtn');
-            if (hasLink(d.downloadLink)) {
-                btn.href = d.downloadLink;
-                btn.textContent = 'تثبيت';
-                btn.className = 'block w-full bg-playGreen text-white text-center py-2 rounded-full font-medium mb-6 install-btn shadow-md text-sm';
+            // التحكم في ظهور جملة الإعلانات
+            const adsElement = document.getElementById('adsText');
+            if(d.hasAds) {
+                adsElement.style.display = 'block';
             } else {
-                btn.removeAttribute('href');
-                btn.textContent = 'قريباً';
-                btn.className = 'block w-full bg-playCard text-playMuted text-center py-2 rounded-full font-medium mb-6 text-sm';
+                adsElement.style.display = 'none';
             }
 
-            document.getElementById('detailIconWrapper').className =
-                `relative overflow-hidden w-[84px] h-[84px] app-icon-squircle flex items-center justify-center shrink-0 shadow-lg bg-gradient-to-br ${d.bgClass}`;
+            // تهيئة زر التثبيت
+            const btnContainer = document.getElementById('btnContainer');
+            btnContainer.innerHTML = `<button id="detailDownloadBtn" class="block w-full bg-playGreen text-white text-center rounded-full font-medium install-btn text-sm h-10 transition-all duration-300">تثبيت</button>`;
+            const newBtn = document.getElementById('detailDownloadBtn');
+
+            if (hasLink(d.downloadLink)) {
+                newBtn.onclick = () => handleInstall(d.downloadLink);
+            } else {
+                newBtn.textContent = 'قريباً';
+                newBtn.className = 'block w-full bg-playCard text-playMuted text-center rounded-full font-medium text-sm h-10';
+            }
+
+            document.getElementById('detailIconWrapper').className = `relative overflow-hidden w-[84px] h-[84px] app-icon-squircle flex items-center justify-center shrink-0 shadow-lg bg-gradient-to-br ${d.bgClass}`;
             document.getElementById('detailIcon').className = `text-4xl text-white ${d.iconClass}`;
 
             const img = document.getElementById('detailIconImg');
             img.classList.add('hidden');
             if (d.icon) {
                 img.onload = () => img.classList.remove('hidden');
-                img.onerror = () => img.classList.add('hidden');
                 img.src = d.icon;
             }
 
-            // لقطات الشاشة
             const shotsSection = document.getElementById('shotsSection');
             const shots = document.getElementById('shotsContainer');
             shots.innerHTML = '';
             const list = (d.screenshots || []).filter(Boolean);
-            list.forEach(src => shots.insertAdjacentHTML('beforeend',
-                `<img src="${esc(src)}" loading="lazy" alt="" class="h-56 rounded-xl snap-start shrink-0 bg-playCard" onerror="this.remove()">`));
+            list.forEach(src => shots.insertAdjacentHTML('beforeend', `<img src="${esc(src)}" loading="lazy" alt="" class="h-56 rounded-xl snap-start shrink-0 bg-playCard">`));
             shotsSection.classList.toggle('hidden', list.length === 0);
 
             document.getElementById('mainStore').style.display = 'none';
@@ -305,14 +339,7 @@
             document.getElementById('mainStore').style.display = 'block';
         }
 
-        // تفويض الأحداث (فتح التفاصيل / التثبيت)
         document.getElementById('mainStore').addEventListener('click', e => {
-            const inst = e.target.closest('[data-install]');
-            if (inst) {
-                e.stopPropagation();
-                window.location.href = appsData[inst.dataset.install].downloadLink;
-                return;
-            }
             const open = e.target.closest('[data-open]');
             if (open) openAppDetails(open.dataset.open);
         });
@@ -327,7 +354,6 @@
             });
         });
 
-        // تحميل البيانات من apps.json (مع كسر الكاش ليظهر التحديث فوراً)
         async function loadApps() {
             const box = document.getElementById('statusBox');
             box.textContent = 'جاري تحميل التطبيقات...';
@@ -346,7 +372,7 @@
                     box.classList.remove('hidden');
                 }
             } catch (err) {
-                box.innerHTML = 'تعذّر تحميل <b>apps.json</b>.<br>تأكد أن الملف بجوار index.html، وأن الصفحة تُفتح من سيرفر/استضافة وليس مباشرة من الملف.';
+                box.innerHTML = 'تعذّر تحميل <b>apps.json</b>.<br>تأكد أن الملف بجوار index.html.';
                 console.error(err);
             }
         }
