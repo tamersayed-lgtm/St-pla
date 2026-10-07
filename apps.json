@@ -1,63 +1,24 @@
 {
-  "storeName": "متجر تطبيقاتي",
-  "updated": "2026-10-07",
+  "storeName": "",
+  "updated": "",
   "apps": [
     {
-      "id": "sama-radio",
-      "title": "راديو سما (Sama Radio)",
-      "category": "تطبيق بث مباشر • أدوات",
+      "id": "radio_sama",
+      "title": "اذاعات القرآن الكريم",
+      "category": "أدوات",
       "dev": "Software983",
-      "icon": "images/sama-radio/icon.png",
-      "iconClass": "fa-solid fa-radio",
+      "icon": "images/sama_radio/icon.png",
+      "iconClass": "fa-solid fa-box",
       "bgClass": "from-blue-600 to-blue-800",
-      "screenshots": [
-        "images/sama-radio/1.png",
-        "images/sama-radio/2.png"
-      ],
-      "rating": "4.8",
-      "size": "14 MB",
-      "downloads": "+10 ألف",
-      "version": "1.0.0",
-      "updated": "2026-10-07",
-      "downloadLink": "https://example.com/SamaRadio.apk",
-      "featured": true,
-      "description": "تطبيق راديو يعمل في الخلفية بسلاسة لدعم البث المباشر.\nالمميزات:\n• يعمل في الخلفية بدون تقطيع بفضل خدمة ExoPlayer.\n• واجهة بسيطة ومريحة للعين.\n• استهلاك قليل جداً للبيانات والبطارية."
-    },
-    {
-      "id": "furnace-app",
-      "title": "فحص الأفران الصناعية",
-      "category": "الصيانة الصناعية • إنتاجية",
-      "dev": "Software983",
-      "icon": "images/furnace-app/icon.png",
-      "iconClass": "fa-solid fa-fire-burner",
-      "bgClass": "from-orange-500 to-red-600",
-      "screenshots": [],
       "rating": "4.9",
-      "size": "6 MB",
-      "downloads": "+1 ألف",
-      "version": "2.1.0",
+      "size": "5 MB",
+      "downloads": "520",
+      "version": "2.0",
       "updated": "2026-10-07",
-      "downloadLink": "#",
+      "downloadLink": "https://apk-downloader.software-samsaf.workers.dev/",
       "featured": true,
-      "description": "أداة متكاملة لمتابعة صيانة الأفران وتسجيل الأعطال.\nالمميزات:\n• إدارة الفحوصات الدورية للمعدات.\n• حفظ السجلات داخلياً للرجوع إليها.\n• واجهة صُممت خصيصاً للمهندسين."
-    },
-    {
-      "id": "task-manager",
-      "title": "إدارة المهام وتصديرها",
-      "category": "تطوير شخصي • أدوات",
-      "dev": "Software983",
-      "icon": "images/task-manager/icon.png",
-      "iconClass": "fa-solid fa-list-check",
-      "bgClass": "from-teal-500 to-emerald-600",
-      "screenshots": [],
-      "rating": "4.7",
-      "size": "2 MB",
-      "downloads": "+5 ألف",
-      "version": "1.5.0",
-      "updated": "2026-10-07",
-      "downloadLink": "#",
-      "featured": false,
-      "description": "تطبيق ويب مدمج لتنظيم المهام اليومية بطريقة احترافية.\nالمميزات:\n• يدعم التخزين المحلي بدون انترنت.\n• إمكانية تصدير البيانات إلى ملف CSV."
+      "description": "",
+      "screenshots": []
     }
   ]
 }
