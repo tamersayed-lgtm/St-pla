@@ -196,7 +196,7 @@
         }
 
         // --- وظيفة أنيميشن التحميل والتثبيت الاحترافية ---
-        function handleInstall(downloadLink) {
+        function handleInstall(downloadLink, downloadName) {
             const btn = document.getElementById('detailDownloadBtn');
             if (btn.dataset.installing === "true") return;
             btn.dataset.installing = "true";
@@ -239,7 +239,12 @@
                         
                         setTimeout(() => {
                             // التنزيل الفعلي وتغيير الزر إلى "تشغيل"
-                            window.location.href = downloadLink;
+                            const a = document.createElement('a');
+                            a.href = downloadLink;
+                            a.download = downloadName || '';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
                             btn.classList.remove('border-gray-600');
                             btn.style.backgroundColor = '#303134';
                             btn.innerHTML = '<span class="text-playGreenLight text-sm font-medium">تشغيل</span>';
@@ -305,7 +310,7 @@
             const newBtn = document.getElementById('detailDownloadBtn');
 
             if (hasLink(d.downloadLink)) {
-                newBtn.onclick = () => handleInstall(d.downloadLink);
+                newBtn.onclick = () => handleInstall(d.downloadLink, d.downloadName);
             } else {
                 newBtn.textContent = 'قريباً';
                 newBtn.className = 'block w-full bg-playCard text-playMuted text-center rounded-full font-medium text-sm h-10';
